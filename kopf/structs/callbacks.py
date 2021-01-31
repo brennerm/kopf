@@ -134,6 +134,23 @@ class ResourceTimerFn(Protocol):
 ResourceSpawningFn = Union[ResourceDaemonFn, ResourceTimerFn]
 
 
+class ResourceViewingFn(Protocol):
+    def __call__(  # lgtm[py/similar-function]
+            self,
+            *args: Any,
+            body: bodies.Body,
+            meta: bodies.Meta,
+            spec: bodies.Spec,
+            status: bodies.Status,
+            uid: Optional[str],
+            name: Optional[str],
+            namespace: Optional[str],
+            logger: Union[logging.Logger, logging.LoggerAdapter],
+            resource: references.Resource,
+            **kwargs: Any,
+    ) -> _SyncOrAsyncResult: ...
+
+
 class WhenFilterFn(Protocol):
     def __call__(  # lgtm[py/similar-function]
             self,

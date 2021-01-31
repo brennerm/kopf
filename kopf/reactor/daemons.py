@@ -57,6 +57,7 @@ async def spawn_resource_daemons(
                 logger=cause.logger,
                 body=memory.live_fresh_body,
                 memo=memory.memo,
+                views=cause.views,
                 patch=patches.Patch(),  # not the same as the one-shot spawning patch!
                 stopper=stopper,  # for checking (passed to kwargs)
             )

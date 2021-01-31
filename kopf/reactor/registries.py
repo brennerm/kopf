@@ -137,6 +137,22 @@ class ResourceWatchingRegistry(ResourceRegistry[
                     yield handler
 
 
+class ResourceViewingRegistry(ResourceRegistry[
+        causation.ResourceWatchingCause,
+        callbacks.ResourceViewingFn,
+        handlers.ResourceViewingHandler]):
+
+    def iter_handlers(
+            self,
+            cause: causation.ResourceWatchingCause,
+            excluded: Container[handlers.HandlerId] = frozenset(),
+    ) -> Iterator[handlers.ResourceViewingHandler]:
+        for handler in self._handlers:
+            if handler.id not in excluded:
+                if match(handler=handler, cause=cause):
+                    yield handler
+
+
 class ResourceSpawningRegistry(ResourceRegistry[
         causation.ResourceSpawningCause,
         callbacks.ResourceSpawningFn,
@@ -236,6 +252,7 @@ class OperatorRegistry:
         self._resource_watching = ResourceWatchingRegistry()
         self._resource_spawning = ResourceSpawningRegistry()
         self._resource_changing = ResourceChangingRegistry()
+        self._resource_viewing = ResourceViewingRegistry()
 
 
 class SmartOperatorRegistry(OperatorRegistry):

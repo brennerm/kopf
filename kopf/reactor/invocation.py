@@ -62,6 +62,7 @@ def build_kwargs(
         new_kwargs.update(
             resource=cause.resource,
             patch=cause.patch,
+            views=cause.views,
             memo=cause.memo,
             body=cause.body,
             spec=cause.body.spec,

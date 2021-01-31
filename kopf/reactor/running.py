@@ -1,3 +1,5 @@
+import collections
+
 import asyncio
 import functools
 import logging
@@ -166,6 +168,7 @@ async def spawn_tasks(
     memories = memories if memories is not None else containers.ResourceMemories()
     insights = insights if insights is not None else references.Insights()
     identity = identity if identity is not None else peering.detect_own_id(manual=False)
+    views: containers.Views() = collections.defaultdict(dict)
     vault = vault if vault is not None else credentials.Vault()
     event_queue: posting.K8sEventQueue = asyncio.Queue()
     signal_flag: aiotasks.Future = asyncio.Future()
@@ -276,6 +279,7 @@ async def spawn_tasks(
                                             registry=registry,
                                             settings=settings,
                                             memories=memories,
+                                            views=views,
                                             event_queue=event_queue))))
 
     # Ensure that all guarded tasks got control for a moment to enter the guard.

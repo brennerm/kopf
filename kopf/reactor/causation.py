@@ -45,6 +45,7 @@ class ResourceCause(BaseCause):
     patch: patches.Patch
     body: bodies.Body
     memo: containers.Memo
+    views: containers.Views
 
 
 @dataclasses.dataclass

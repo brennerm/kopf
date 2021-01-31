@@ -10,7 +10,7 @@ object, even if that object does not show up in the event streams for long time.
 import dataclasses
 import logging
 import time
-from typing import Any, Dict, Iterator, MutableMapping, Optional, Set, Union
+from typing import Any, Dict, Iterator, MutableMapping, Optional, Set, Union, Mapping
 
 from kopf.structs import bodies, handlers, primitives
 from kopf.utilities import aiotasks
@@ -49,6 +49,12 @@ class Memo(Dict[Any, Any]):
             return self[key]
         except KeyError as e:
             raise AttributeError(str(e))
+
+
+ViewName = str
+ViewKey = Any
+Views = Mapping[ViewName, Mapping[ViewKey, Any]]
+# Views = Mapping[ViewName, Mapping[ViewKey, callbacks.Result]]  # TODO: try the Result, if possible
 
 
 @dataclasses.dataclass(frozen=False)

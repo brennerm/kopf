@@ -27,6 +27,7 @@ from kopf.on import (
     register,
     daemon,
     timer,
+    view,
 )
 from kopf.reactor import (
     lifecycles,  # as a separate name on the public namespace
@@ -92,6 +93,7 @@ from kopf.structs.configuration import (
 )
 from kopf.structs.containers import (
     Memo,
+    Views,
 )
 from kopf.structs.credentials import (
     LoginError,
@@ -141,7 +143,7 @@ from kopf.utilities.piggybacking import (
 )
 
 __all__ = [
-    'on', 'lifecycles', 'register', 'execute', 'daemon', 'timer',
+    'on', 'lifecycles', 'register', 'execute', 'daemon', 'timer', 'view',
     'configure', 'LogFormat',
     'login_via_pykube', 'login_via_client', 'LoginError', 'ConnectionInfo',
     'event', 'info', 'warn', 'exception',
@@ -186,6 +188,7 @@ __all__ = [
     'ObjectReference',
     'OwnerReference',
     'Memo',
+    'Views',
     'ObjectLogger',
     'LocalObjectLogger',
     'FieldSpec',

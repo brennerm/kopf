@@ -152,3 +152,12 @@ class ResourceTimerHandler(ResourceSpawningHandler):
 
     def __str__(self) -> str:
         return f"Timer {self.id!r}"
+
+
+@dataclasses.dataclass
+class ResourceViewingHandler(ResourceHandler):
+    fn: callbacks.ResourceViewingFn  # type clarification
+    # key: ...  # TODO
+
+    def __str__(self) -> str:
+        return f"View {self.id!r}"

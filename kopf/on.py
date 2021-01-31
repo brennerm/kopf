@@ -591,6 +591,61 @@ def timer(  # lgtm[py/similar-function]
     return decorator
 
 
+def view(  # lgtm[py/similar-function]
+        # Resource type specification:
+        __group_or_groupversion_or_name: Optional[Union[str, references.Marker]] = None,
+        __version_or_name: Optional[Union[str, references.Marker]] = None,
+        __name: Optional[Union[str, references.Marker]] = None,
+        *,
+        group: Optional[str] = None,
+        version: Optional[str] = None,
+        kind: Optional[str] = None,
+        plural: Optional[str] = None,
+        singular: Optional[str] = None,
+        shortcut: Optional[str] = None,
+        category: Optional[str] = None,
+        # Handler's behaviour specification:
+        id: Optional[str] = None,
+        param: Optional[Any] = None,
+        errors: Optional[handlers.ErrorsMode] = None,
+        timeout: Optional[float] = None,
+        retries: Optional[int] = None,
+        backoff: Optional[float] = None,
+        # key: ... # TODO:
+        # Resource object specification:
+        labels: Optional[filters.MetaFilter] = None,
+        annotations: Optional[filters.MetaFilter] = None,
+        when: Optional[callbacks.WhenFilterFn] = None,
+        field: Optional[dicts.FieldSpec] = None,
+        value: Optional[filters.ValueFilter] = None,
+        # Operator specification:
+        registry: Optional[registries.OperatorRegistry] = None,
+) -> ResourceTimerDecorator:
+    """ ``@kopf.timer()`` handler for the regular events. """
+    def decorator(  # lgtm[py/similar-function]
+            fn: callbacks.ResourceViewingFn,
+    ) -> callbacks.ResourceViewingFn:
+        _warn_conflicting_values(field, value)
+        _verify_filters(labels, annotations)
+        real_registry = registry if registry is not None else registries.get_default_registry()
+        real_field = dicts.parse_field(field) or None  # to not store tuple() as a no-field case.
+        real_id = registries.generate_id(fn=fn, id=id)
+        selector = references.Selector(
+            __group_or_groupversion_or_name, __version_or_name, __name,
+            group=group, version=version,
+            kind=kind, plural=plural, singular=singular, shortcut=shortcut, category=category,
+        )
+        handler = handlers.ResourceViewingHandler(
+            fn=fn, id=real_id, param=param,
+            errors=errors, timeout=timeout, retries=retries, backoff=backoff,
+            selector=selector, labels=labels, annotations=annotations, when=when,
+            field=real_field, value=value,
+        )
+        real_registry._resource_viewing.append(handler)
+        return fn
+    return decorator
+
+
 def subhandler(  # lgtm[py/similar-function]
         *,
         # Handler's behaviour specification:

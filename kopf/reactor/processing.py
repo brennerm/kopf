@@ -29,6 +29,7 @@ async def process_resource_event(
         registry: registries.OperatorRegistry,
         settings: configuration.OperatorSettings,
         memories: containers.ResourceMemories,
+        views: containers.Views,
         resource: references.Resource,
         raw_event: bodies.RawEvent,
         replenished: asyncio.Event,
@@ -86,6 +87,7 @@ async def process_resource_event(
                 patch=patch,
                 logger=logger,
                 memory=memory,
+                views=views,
             )
 
             # Whatever was done, apply the accumulated changes to the object, or sleep-n-touch for delays.
@@ -115,11 +117,13 @@ async def process_resource_causes(
         patch: patches.Patch,
         logger: loggers.ObjectLogger,
         memory: containers.ResourceMemory,
+        views: containers.Views,
 ) -> Tuple[Collection[float], bool]:
 
     finalizer = settings.persistence.finalizer
     extra_fields = (
         registry._resource_watching.get_extra_fields(resource=resource) |
+        registry._resource_viewing.get_extra_fields(resource=resource) |
         registry._resource_changing.get_extra_fields(resource=resource) |
         registry._resource_spawning.get_extra_fields(resource=resource))
     old = settings.persistence.diffbase_storage.fetch(body=body)
@@ -133,14 +137,19 @@ async def process_resource_causes(
         raw_event=raw_event,
         resource=resource,
         logger=logger,
+        views=views,
         patch=patch,
         body=body,
         memo=memory.memo,
-    ) if registry._resource_watching.has_handlers(resource=resource) else None
+    ) if (registry._resource_watching.has_handlers(resource=resource) or
+          registry._resource_viewing.has_handlers(resource=resource)
+          ) else None
+    # TODO: can we implement it with ResourceWatchingHandler.is_view? what about .key, etc?
 
     resource_spawning_cause = causation.detect_resource_spawning_cause(
         resource=resource,
         logger=logger,
+        views=views,
         patch=patch,
         body=body,
         memo=memory.memo,
@@ -152,6 +161,7 @@ async def process_resource_causes(
         raw_event=raw_event,
         resource=resource,
         logger=logger,
+        views=views,
         patch=patch,
         body=body,
         old=old,
@@ -200,6 +210,12 @@ async def process_resource_causes(
     # handlers and killed after them: the daemons should live throughout the full object lifecycle.
     if resource_watching_cause is not None:
         await process_resource_watching_cause(
+            lifecycle=lifecycles.all_at_once,
+            registry=registry,
+            settings=settings,
+            cause=resource_watching_cause,
+        )
+        await process_resource_viewing_cause(
             lifecycle=lifecycles.all_at_once,
             registry=registry,
             settings=settings,
@@ -265,6 +281,46 @@ async def process_resource_watching_cause(
 
     # Store the results, but not the handlers' progress.
     states.deliver_results(outcomes=outcomes, patch=cause.patch)
+
+
+async def process_resource_viewing_cause(
+        lifecycle: lifecycles.LifeCycleFn,
+        registry: registries.OperatorRegistry,
+        settings: configuration.OperatorSettings,
+        cause: causation.ResourceWatchingCause,
+) -> None:
+    """
+    TODO:
+    """
+    handlers = registry._resource_viewing.get_handlers(cause=cause)
+    outcomes = await handling.execute_handlers_once(
+        lifecycle=lifecycle,
+        settings=settings,
+        handlers=handlers,
+        cause=cause,
+        state=states.State.from_scratch().with_handlers(handlers),
+        default_errors=handlers_.ErrorsMode.IGNORED,
+    )
+
+    # Persist the results in-memory for later reuse by all handlers.
+    # TODO:2: implement filtering out!
+    #         ==> delete all keys in all views which are not in outcomes now.
+    # TODO:3: can we use a per-handler key= callback here?
+    #         ==> how to deal with 2 handlers with different keys for the same view?
+    #         ==> do we need overrideable keys at all? isn't K8s API uniqueness enough?
+    # TODO:4: add type/dataclass for this key tuple.
+    key = (cause.resource, cause.body.meta.namespace, cause.body.meta.name)
+    for id, outcome in outcomes.items():
+        cause.views[id][key] = outcome.result
+        print(f"{id} ++ {key} => {outcome.result}")
+    for id, view in cause.views.items():
+        if key in view:
+            if id not in outcomes:
+                print(f"{id} -- {key}")
+                del view[key]
+            elif cause.type == 'DELETED':
+                print(f"{id} ## {key}")
+                del view[key]
 
 
 async def process_resource_spawning_cause(
